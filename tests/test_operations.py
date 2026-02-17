@@ -1,5 +1,5 @@
 import pytest
-from app.operations import Operations
+from app.operation import Operations
 
 
 @pytest.mark.parametrize(

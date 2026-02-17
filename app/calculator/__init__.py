@@ -1,4 +1,4 @@
-from app.operations import Operations
+from app.operation import Operations
 
 HELP_TEXT = (
     "Commands:\n"
