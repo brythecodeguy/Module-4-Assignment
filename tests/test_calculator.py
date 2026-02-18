@@ -1,6 +1,9 @@
 import pytest
 from app.calculator import calculator
 
+import builtins
+import app.calculator as calc_mod
+
 ERROR_MSG = "Invalid input. Please follow the format: <operation> <num1> <num2>"
 
 
@@ -72,3 +75,73 @@ def test_calculator_blank_input(monkeypatch, capsys):
 def test_calculator_help_command(monkeypatch, capsys):
     out = run_calculator_with_inputs(["help", "exit"], monkeypatch, capsys)
     assert "Help" in out or "Usage" in out or "Commands" in out
+
+def test_display_help_function_body(capsys):
+    #display_help() print block
+    calc_mod.display_help()
+    out = capsys.readouterr().out
+    assert "Calculator REPL Help" in out
+    assert "Supported operations" in out
+    assert "Special commands" in out
+
+
+def test_display_history_empty_branch(capsys):
+    #if not history -> print + return
+    calc_mod.display_history([])
+    out = capsys.readouterr().out
+    assert "No calculations performed yet." in out
+
+
+def test_history_command_path(monkeypatch, capsys):
+    #if command == "history": display_history(history); continue
+    out = run_calculator_with_inputs(["history", "exit"], monkeypatch, capsys)
+    assert "No calculations performed yet." in out
+
+
+def test_generic_exception_handler(monkeypatch, capsys):
+    #except Exception as e: print(f"Error during calculation: {e}")
+    # Trigger by making __str__ raise a non-ValueError exception.
+    from app.calculation import AddCalculation
+
+    def boom_str(self):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(AddCalculation, "__str__", boom_str)
+
+    out = run_calculator_with_inputs(["add 1 2", "exit"], monkeypatch, capsys)
+    assert "Error during calculation:" in out
+    assert "boom" in out
+
+
+def test_keyboard_interrupt_branch(monkeypatch, capsys):
+    def raise_keyboard_interrupt(_):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(builtins, "input", raise_keyboard_interrupt)
+
+    with pytest.raises(SystemExit):
+        calc_mod.calculator()
+
+    out = capsys.readouterr().out
+    assert "Keyboard interrupt detected. Goodbye!" in out
+
+
+def test_eof_branch(monkeypatch, capsys):
+    def raise_eof(_):
+        raise EOFError
+
+    monkeypatch.setattr(builtins, "input", raise_eof)
+
+    with pytest.raises(SystemExit):
+        calc_mod.calculator()
+
+    out = capsys.readouterr().out
+    assert "EOF detected. Goodbye!" in out
+
+def test_display_history_with_items(monkeypatch, capsys):
+    # First perform a calculation so history has something in it
+    out = run_calculator_with_inputs(["add 2 3", "history", "exit"], monkeypatch, capsys)
+
+    assert "Calculation History:" in out
+    assert "1." in out
+    assert "AddCalculation" in out
