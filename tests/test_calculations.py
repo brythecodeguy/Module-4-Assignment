@@ -1,4 +1,3 @@
-# tests/test_calculations.py
 import pytest
 
 from app.calculation import (

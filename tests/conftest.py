@@ -1,4 +1,3 @@
-# tests/conftest.py
 import pytest
 from app.calculation import CalculationFactory
 
