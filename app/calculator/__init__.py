@@ -1,68 +1,119 @@
-from app.operation import Operations
+import sys
+import readline  # enables terminal history/editing
+from typing import List
 
-HELP_TEXT = (
-    "Commands:\n"
-    "  add a b        -> adds a + b\n"
-    "  subtract a b   -> subtracts a - b (shortcut: sub)\n"
-    "  multiply a b   -> multiplies a * b (shortcut: mul)\n"
-    "  divide a b     -> divides a / b (shortcut: div)\n"
-    "  help           -> show this message\n"
-    "  exit           -> quit the program\n"
-)
+from app.calculation import Calculation, CalculationFactory
 
-SHORTCUT = {
+
+SHORTCUTS = {
     "sub": "subtract",
     "mul": "multiply",
     "div": "divide",
 }
 
-ERROR_MSG = "Invalid input. Please follow the format: <operation> <num1> <num2>"
+ERROR_FORMAT = "Invalid input. Use: <operation> <num1> <num2>"
 
-def calculator():
-    print("Welcome to the Calculator REPL! Type 'help' for commands, 'exit' to quit.")
+
+def display_help() -> None:
+    print(
+        """
+Calculator REPL Help
+--------------------
+Usage:
+  <operation> <number1> <number2>
+
+Supported operations:
+  add, subtract, multiply, divide
+
+Shortcuts:
+  sub -> subtract
+  mul -> multiply
+  div -> divide
+
+Special commands:
+  help      show this message
+  history   show calculation history
+  exit      quit the program
+
+Examples:
+  add 10 5
+  sub 15 3
+  mul 7 8
+  div 20 4
+"""
+    )
+
+
+def display_history(history: List[Calculation]) -> None:
+    if not history:
+        print("No calculations performed yet.\n")
+        return
+
+    print("Calculation History:")
+    for idx, calc in enumerate(history, start=1):
+        print(f"{idx}. {calc}")
+    print()
+
+
+def calculator() -> None:
+    history: List[Calculation] = []
+
+    print("Welcome to the Professional Calculator REPL!")
+    print("Type 'help' for instructions, 'history' to view past results, or 'exit' to quit.\n")
 
     while True:
-        user_input = input("> ").strip()
-
-        if not user_input:
-            continue
-
-        cmd_parts = user_input.split()
-        cmd = cmd_parts[0].lower()
-
-        if cmd == "help":
-            print(HELP_TEXT)
-            continue
-
-        if cmd in ("exit", "quit"):
-            print("Exiting calculator...")
-            break
-
-        cmd = SHORTCUT.get(cmd, cmd)
-
-        if len(cmd_parts) != 3:
-            print(ERROR_MSG)
-            continue
-
         try:
-            a = float(cmd_parts[1])
-            b = float(cmd_parts[2])
+            user_input = input(">> ").strip()
 
-        except ValueError:
-            print(ERROR_MSG)
-            continue
+            # LBYL: quick check before doing any work
+            if not user_input:
+                continue
 
-        try:
-            if cmd == "add":
-                print(f"Result: {Operations.add(a, b)}")
-            elif cmd == "subtract":
-                print(f"Result: {Operations.subtract(a, b)}")
-            elif cmd == "multiply":
-                print(f"Result: {Operations.multiply(a, b)}")
-            elif cmd == "divide":
-                print(f"Result: {Operations.divide(a, b)}")
-            else:
-                print("Invalid operation. Type 'help' for a list of commands.")
+            command = user_input.lower()
 
-        except ValueError as e:
-            print(e)
+            # Special commands
+            if command == "help":
+                display_help()
+                continue
+            if command == "history":
+                display_history(history)
+                continue
+            if command in ("exit", "quit"):
+                print("Goodbye!\n")
+                sys.exit(0)
+
+            # EAFP: parse + convert
+            try:
+                operation, num1_str, num2_str = user_input.split()
+                operation = SHORTCUTS.get(operation.lower(), operation.lower())
+                num1 = float(num1_str)
+                num2 = float(num2_str)
+            except ValueError:
+                print(f"{ERROR_FORMAT}\n")
+                continue
+
+            # Create calculation via factory
+            try:
+                calc = CalculationFactory.create_calculation(operation, num1, num2)
+            except ValueError as ve:
+                print(f"{ve}\n")
+                continue
+
+            # Execute + print + store
+            try:
+                print(f"Result: {calc}\n")
+                history.append(calc)
+            except ValueError as e:
+                print(f"{e}\n")
+                continue
+
+            except Exception as e:
+                print(f"Error during calculation: {e}\n")
+                continue
+
+        except KeyboardInterrupt:
+            print("\nKeyboard interrupt detected. Goodbye!\n")
+            sys.exit(0)
+        except EOFError:
+            print("\nEOF detected. Goodbye!\n")
+            sys.exit(0)
